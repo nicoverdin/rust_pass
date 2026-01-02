@@ -1,10 +1,11 @@
 use aes_gcm::{
-    Aes256Gcm,
     aead::{Aead, AeadCore, OsRng},
+    Aes256Gcm,
 };
 use serde::{Deserialize, Serialize};
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::{Read, Write};
+use std::path::PathBuf;
 
 /// Represents an individual encrypted credential entry.
 #[derive(Serialize, Deserialize, Debug)]
@@ -23,10 +24,27 @@ pub struct Vault {
 }
 
 impl Vault {
-    /// Loads the vault from `vault.json`.
+    /// Helper function to determine the storage path.
+    /// Creates the directory structure if it doesn't exist.
+    /// Returns: ~/.passrust/vault.json (Linux/Mac) or %USERPROFILE%\.passrust\vault.json (Windows)
+    fn get_vault_path() -> PathBuf {
+        let mut path = dirs::home_dir().expect("Could not determine home directory");
+        path.push(".passrust");
+        
+        // Ensure the directory exists
+        if !path.exists() {
+            fs::create_dir_all(&path).expect("Failed to create vault directory");
+        }
+        
+        path.push("vault.json");
+        path
+    }
+
+    /// Loads the vault from the global user directory.
     /// If the file is missing or corrupted, it initializes a new `Vault` instance.
     pub fn load() -> Self {
-        let path = "vault.json";
+        let path = Self::get_vault_path();
+        
         File::open(path)
             .and_then(|mut file| {
                 let mut contents = String::new();
@@ -43,10 +61,11 @@ impl Vault {
         }
     }
 
-    /// Persists the current state of the vault to a JSON file.
+    /// Persists the current state of the vault to the global user directory.
     pub fn save(&self) -> std::io::Result<()> {
-        let json = serde_json::to_string_pretty(self).expect("Failed to serialize");
-        let mut file = File::create("vault.json")?;
+        let json = serde_json::to_string_pretty(self).expect("Failed to serialize vault");
+        let path = Self::get_vault_path();
+        let mut file = File::create(path)?;
         file.write_all(json.as_bytes())
     }
 
@@ -58,7 +77,6 @@ impl Vault {
     }
 
     /// Updates the password for an existing site.
-    /// Returns `true` if the entry was found and updated successfully.
     pub fn update_entry(&mut self, site: &str, new_pass: &str, cipher: &Aes256Gcm) -> bool {
         if let Some(entry) = self
             .entries
