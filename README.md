@@ -2,6 +2,9 @@
 
 [![Rust CI](https://github.com/nicoverdin/rust_pass/actions/workflows/rust.yml/badge.svg)](https://github.com/nicoverdin/rust_pass/actions/workflows/rust.yml)
 [![Deploy Documentation](https://github.com/nicoverdin/rust_pass/actions/workflows/docs.yml/badge.svg)](https://github.com/nicoverdin/rust_pass/actions/workflows/docs.yml)
+
+---
+
 A lightweight, secure command-line password manager built with **Rust**. This project focuses on high-performance cryptography, safe memory management, and a user-friendly hybrid interface.
 
 ## Features
