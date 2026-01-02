@@ -8,6 +8,23 @@
 
 A lightweight, secure command-line password manager built with **Rust**. This project focuses on high-performance cryptography, safe memory management, and a user-friendly hybrid interface.
 
+## 🧠 Key Learnings & Technical Challenges
+
+### 🛡️ Cryptographic Integrity with AES-256-GCM
+Unlike standard AES-CBC, I implemented **AES-256-GCM** (Galois/Counter Mode). This provides not only confidentiality but also **authenticity**. It prevents "bit-flipping" attacks by using an authentication tag, ensuring that if the encrypted vault is tampered with, the system will detect it and refuse to decrypt.
+
+### 🔑 Robust Key Derivation with Argon2id
+To protect against GPU-based brute-force attacks, I integrated **Argon2id**, the winner of the Password Hashing Competition. This ensures that even if a master password is weak, the computational cost (memory-hard) makes offline cracking significantly harder.
+
+### 🦀 Rust Memory Safety & Ownership
+Developing this manager required a deep understanding of Rust's ownership model, especially when handling sensitive data in memory. I used `Zeroize` (optional but recommended) concepts to ensure that plaintext passwords are not left lingering in the heap after use.
+
+### 🤖 Automated DevOps Pipeline
+I established a professional CI/CD workflow that:
+- Runs automated unit tests on every push.
+- Enforces code style consistency using `cargo fmt`.
+- Automatically deploys technical documentation to GitHub Pages.
+
 ## Features
 * **Zero Trust Architecture**: Passwords are encrypted locally using AES-256-GCM.
 * **Hybrid Interface**: Use CLI arguments for automation or a rich **Interactive Mode** with menus and forms.
@@ -34,15 +51,17 @@ The project is modularized to ensure a clean separation of concerns:
 * `vault.rs`: Manages the encrypted data model, file I/O, and entry logic.
 * `crypto.rs`: Handles Argon2 key derivation and AES-256-GCM encryption/decryption.
 
-## Installation
+## 🚀 Installation
 
-Ensure you have the Rust toolchain installed.
+To install **PassRust** on your local machine, clone the repository and run the installation script:
 
-`git clone https://github.com/yourusername/passrust.git`
-`cd passrust`
-`cargo build --release`
+`git clone https://github.com/nicoverdin/rust_pass.git`
+`cd rust_pass`
+`chmod +x install.sh`
+`./install.sh`
 
-The binary will be available at `./target/release/passrust`.
+Once installed, simply run:
+`passrust`
 
 ## Usage
 
