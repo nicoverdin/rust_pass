@@ -30,12 +30,12 @@ impl Vault {
     fn get_vault_path() -> PathBuf {
         let mut path = dirs::home_dir().expect("Could not determine home directory");
         path.push(".passrust");
-        
+
         // Ensure the directory exists
         if !path.exists() {
             fs::create_dir_all(&path).expect("Failed to create vault directory");
         }
-        
+
         path.push("vault.json");
         path
     }
@@ -44,7 +44,7 @@ impl Vault {
     /// If the file is missing or corrupted, it initializes a new `Vault` instance.
     pub fn load() -> Self {
         let path = Self::get_vault_path();
-        
+
         File::open(path)
             .and_then(|mut file| {
                 let mut contents = String::new();
@@ -77,6 +77,7 @@ impl Vault {
     }
 
     /// Updates the password for an existing site.
+    /// Returns `true` if the entry was found and updated successfully.
     pub fn update_entry(&mut self, site: &str, new_pass: &str, cipher: &Aes256Gcm) -> bool {
         if let Some(entry) = self
             .entries
