@@ -24,3 +24,40 @@ pub fn generate_password(length: usize) -> String {
         })
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use aes_gcm::aead::{Aead, AeadCore, OsRng};
+
+    #[test]
+    fn test_encryption_decryption_cycle() {
+        let master_pass = "portfolio_password_2026";
+        let salt = "somesaltstandardbase64"; // Sal de prueba
+        let data = "secret_message";
+
+        let cipher = get_cipher(master_pass, salt);
+        let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
+
+        let ciphertext = cipher.encrypt(&nonce, data.as_bytes()).unwrap();
+        
+        let decrypted_bytes = cipher.decrypt(&nonce, ciphertext.as_ref()).unwrap();
+        let decrypted_string = String::from_utf8(decrypted_bytes).unwrap();
+
+        assert_eq!(data, decrypted_string);
+    }
+
+    #[test]
+    fn test_wrong_password_fails() {
+        let salt = "somesaltstandardbase64";
+        let cipher_correct = get_cipher("password123", salt);
+        let cipher_wrong = get_cipher("wrong_pass", salt);
+        
+        let data = "sensitive data";
+        let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
+        let ciphertext = cipher_correct.encrypt(&nonce, data.as_bytes()).unwrap();
+
+        let result = cipher_wrong.decrypt(&nonce, ciphertext.as_ref());
+        assert!(result.is_err());
+    }
+}
