@@ -2,7 +2,7 @@
 
 [![Rust CI](https://github.com/nicoverdin/rust_pass/actions/workflows/rust.yml/badge.svg)](https://github.com/nicoverdin/rust_pass/actions/workflows/rust.yml)
 [![Deploy Documentation](https://github.com/nicoverdin/rust_pass/actions/workflows/docs.yml/badge.svg)](https://github.com/nicoverdin/rust_pass/actions/workflows/docs.yml)
-📚 [Documentation Live Demo](https://TU_USUARIO.github.io/TU_REPO/passrust/)
+📚 [Documentation Live Demo](https://nicoverdin.github.io/rust_pass/passrust/)
 
 ---
 
