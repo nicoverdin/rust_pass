@@ -96,3 +96,14 @@ Each entry is encrypted with a unique **96-bit Nonce**. Reusing a nonce with the
 
 ---
 License: MIT
+
+## 🗺️ Roadmap & Future Enhancements
+
+The current version (v1.1) provides a solid cryptographic foundation. Future iterations will focus on portability and advanced security auditing:
+
+- [ ] **Cloud Sync Integration**: Optional encrypted synchronization with providers like Google Drive or Dropbox using their respective APIs.
+- [ ] **Password Health Audit**: A feature to scan the vault and alert users about weak, reused, or compromised passwords (via HaveIBeenPwned API).
+- [ ] **Browser Extension Bridge**: A secure WebSocket local server to allow browser extensions to request credentials safely.
+- [ ] **Multi-factor Authentication (MFA)**: Support for TOTP (Time-based One-Time Passwords) within the vault.
+- [ ] **Zero-Knowledge Recovery**: Implementation of a BIP-39 recovery phrase system for master password loss.
+- [ ] **Cross-Platform GUI**: A native desktop interface built with **Tauri** using the existing Rust core.
