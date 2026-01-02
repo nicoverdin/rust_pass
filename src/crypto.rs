@@ -29,18 +29,19 @@ pub fn generate_password(length: usize) -> String {
 mod tests {
     use super::*;
     use aes_gcm::aead::{Aead, AeadCore, OsRng};
+    use argon2::password_hash::SaltString;
 
     #[test]
     fn test_encryption_decryption_cycle() {
         let master_pass = "portfolio_password_2026";
-        let salt = "somesaltstandardbase64"; // Sal de prueba
+        let salt = SaltString::generate(&mut OsRng); 
+        let salt_str = salt.as_str();
         let data = "secret_message";
 
-        let cipher = get_cipher(master_pass, salt);
+        let cipher = get_cipher(master_pass, salt_str);
         let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
 
         let ciphertext = cipher.encrypt(&nonce, data.as_bytes()).unwrap();
-        
         let decrypted_bytes = cipher.decrypt(&nonce, ciphertext.as_ref()).unwrap();
         let decrypted_string = String::from_utf8(decrypted_bytes).unwrap();
 
@@ -49,9 +50,11 @@ mod tests {
 
     #[test]
     fn test_wrong_password_fails() {
-        let salt = "somesaltstandardbase64";
-        let cipher_correct = get_cipher("password123", salt);
-        let cipher_wrong = get_cipher("wrong_pass", salt);
+        let salt = SaltString::generate(&mut OsRng);
+        let salt_str = salt.as_str();
+        
+        let cipher_correct = get_cipher("password123", salt_str);
+        let cipher_wrong = get_cipher("wrong_pass", salt_str);
         
         let data = "sensitive data";
         let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
