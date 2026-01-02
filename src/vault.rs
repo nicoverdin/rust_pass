@@ -1,6 +1,6 @@
 use aes_gcm::{
-    aead::{Aead, AeadCore, OsRng},
     Aes256Gcm,
+    aead::{Aead, AeadCore, OsRng},
 };
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
