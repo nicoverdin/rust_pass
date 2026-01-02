@@ -1,7 +1,7 @@
 use aes_gcm::{Aes256Gcm, Key, aead::KeyInit};
 use argon2::{
-    Argon2,
     password_hash::{PasswordHasher, SaltString},
+    Argon2, Algorithm, Version, Params,
 };
 
 /// Derives a 256-bit AES key from a master password and a salt using Argon2id.
@@ -15,8 +15,16 @@ use argon2::{
 /// * `master_pass` - The user's secret master password.
 /// * `salt_str` - The Base64 encoded salt string stored in the vault.
 pub fn get_cipher(master_pass: &str, salt_str: &str) -> Aes256Gcm {
-    let salt = SaltString::from_b64(salt_str).expect("Corrupted salt in vault");
-    let argon2 = Argon2::default();
+    let salt = SaltString::from_b64(salt_str).expect("Invalid salt");
+
+    // CONFIGURACIÓN ENDURECIDA (HARDENED)
+    // m_cost: 65536 KB = 64 MB de RAM por hash.
+    // t_cost: 3 iteraciones.
+    // p_cost: 4 hilos de paralelismo.
+    let params = Params::new(131072, 8, 4, Some(32)).expect("Invalid Argon2 params");
+    
+    let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
+
     let password_hash = argon2
         .hash_password(master_pass.as_bytes(), &salt)
         .expect("Failed to derive key");
@@ -26,7 +34,6 @@ pub fn get_cipher(master_pass: &str, salt_str: &str) -> Aes256Gcm {
 
     Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&hash_bytes[..32]))
 }
-
 /// Generates a high-entropy random password using a cryptographically secure character set.
 ///
 /// # Arguments

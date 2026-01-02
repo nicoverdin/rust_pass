@@ -1,6 +1,10 @@
 mod crypto;
 mod vault;
 
+use std::process;
+use std::io::{self, Write, IsTerminal};
+use std::{thread, time};
+
 use aes_gcm::{
     Aes256Gcm, Nonce,
     aead::{Aead, AeadCore, OsRng},
@@ -9,6 +13,10 @@ use clap::{Parser, Subcommand};
 use colored::*;
 use dialoguer::{Input, Password, Select};
 use vault::{PasswordEntry, Vault};
+use zeroize::Zeroizing;
+use std::os::fd::FromRawFd; // <--- NUEVO: Para acceso de bajo nivel
+use std::fs::File;          // <--- NUEVO
+use std::io::Read;          // <--- NUEVO
 
 #[derive(Parser)]
 #[command(
@@ -62,21 +70,76 @@ fn print_banner() {
     );
 }
 
+// --- CAMBIO CRÍTICO 1: Esta función ahora devuelve un dato blindado ---
+// --- FUNCIÓN DE INPUT BLINDADA (VERSIÓN FINAL) ---
+fn get_sensitive_input(prompt: &str) -> Zeroizing<String> {
+    print!("{}", prompt.bright_yellow().bold());
+    io::stdout().flush().unwrap();
+
+    if io::stdin().is_terminal() {
+        // MODO HUMANO: rpassword es seguro
+        let pass = rpassword::read_password().unwrap();
+        Zeroizing::new(pass)
+    } else {
+        // MODO SCRIPT (Ataque): LECTURA QUIRÚRGICA
+        // Saltamos std::io::stdin() porque tiene buffer interno sucio.
+        // Abrimos directamente el descriptor de archivo 0 (Stdin) del sistema operativo.
+        let mut file = unsafe { File::from_raw_fd(0) };
+        
+        let mut buffer = Zeroizing::new(Vec::new());
+        let mut byte = [0u8; 1];
+
+        // Leemos byte a byte directamente del pipe del sistema
+        loop {
+            match file.read(&mut byte) {
+                Ok(0) => break, // Fin del stream (EOF)
+                Ok(_) => {
+                    if byte[0] == b'\n' {
+                        break; // Fin de línea
+                    }
+                    buffer.push(byte[0]);
+                }
+                Err(_) => break,
+            }
+        }
+        
+        // IMPORTANTE: 'File' intentará cerrar stdin (0) al morir. 
+        // Usamos mem::forget para evitar cerrar la entrada estándar del programa.
+        std::mem::forget(file);
+
+        let s = String::from_utf8(buffer.to_vec()).unwrap();
+        Zeroizing::new(s)
+    }
+}
+
 fn main() {
-    print_banner();
     let cli = Cli::parse();
+    
     let mut vault = Vault::load();
 
-    let master_pass = Password::new()
-        .with_prompt(format!("{}: ", "Master Password".bright_yellow().bold()))
-        .interact()
-        .expect("Failed to read password");
 
-    let cipher = crypto::get_cipher(&master_pass, &vault.salt);
+    // --- CAMBIO CRÍTICO 2: Zona segura ---
+    let cipher = {
+        // get_sensitive_input ya nos devuelve la contraseña protegida con Zeroize
+        let master_pass = get_sensitive_input("Master Password: ");
+
+        // Derivamos la clave
+        let c = crypto::get_cipher(&master_pass, &vault.salt);
+        
+        c 
+        // AQUÍ la variable master_pass muere y se sobrescribe con 00000000
+    };
+
+    println!("DEBUG: Password scrubbed (cleaned) from RAM. Sleeping 10s...");
+    println!("       (Attacker scanning memory now... should find nothing)");
+    thread::sleep(time::Duration::from_secs(10));
 
     match cli.command {
         Some(cmd) => execute_command(cmd, &mut vault, &cipher),
-        None => run_interactive(&mut vault, &cipher),
+        None => {
+            print_banner();
+            run_interactive(&mut vault, &cipher);
+        }
     }
 }
 
@@ -123,10 +186,13 @@ fn execute_command(cmd: Commands, vault: &mut Vault, cipher: &Aes256Gcm) {
                             pass.bright_green().bold()
                         );
                     }
-                    Err(_) => println!(
-                        "[{}] Invalid Master Password or corrupted data.",
-                        "ERROR".red().bold()
-                    ),
+                    Err(_) => {
+                        println!(
+                            "[{}] Invalid Master Password or corrupted data.",
+                            "ERROR".red().bold()
+                        );
+                        process::exit(1);
+                    } 
                 }
             } else {
                 println!(
@@ -134,6 +200,7 @@ fn execute_command(cmd: Commands, vault: &mut Vault, cipher: &Aes256Gcm) {
                     "NOT FOUND".yellow().bold(),
                     site
                 );
+                process::exit(1);
             }
         }
 
