@@ -1,7 +1,7 @@
 use aes_gcm::{Aes256Gcm, Key, aead::KeyInit};
 use argon2::{
+    Algorithm, Argon2, Params, Version,
     password_hash::{PasswordHasher, SaltString},
-    Argon2, Algorithm, Version, Params,
 };
 
 /// Derives a 256-bit AES key from a master password and a salt using Argon2id.
@@ -22,7 +22,7 @@ pub fn get_cipher(master_pass: &str, salt_str: &str) -> Aes256Gcm {
     // t_cost: 3 iteraciones.
     // p_cost: 4 hilos de paralelismo.
     let params = Params::new(131072, 8, 4, Some(32)).expect("Invalid Argon2 params");
-    
+
     let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
 
     let password_hash = argon2

@@ -1,8 +1,8 @@
 mod crypto;
 mod vault;
 
+use std::io::{self, IsTerminal, Write};
 use std::process;
-use std::io::{self, Write, IsTerminal};
 /* use std::{thread, time}; */
 
 use aes_gcm::{
@@ -12,11 +12,11 @@ use aes_gcm::{
 use clap::{Parser, Subcommand};
 use colored::*;
 use dialoguer::{Input, Password, Select};
-use vault::{PasswordEntry, Vault};
-use zeroize::Zeroizing;
-use std::os::fd::FromRawFd;
 use std::fs::File;
 use std::io::Read;
+use std::os::fd::FromRawFd;
+use vault::{PasswordEntry, Vault};
+use zeroize::Zeroizing;
 
 #[derive(Parser)]
 #[command(
@@ -79,7 +79,7 @@ fn get_sensitive_input(prompt: &str) -> Zeroizing<String> {
         Zeroizing::new(pass)
     } else {
         let mut file = unsafe { File::from_raw_fd(0) };
-        
+
         let mut buffer: Zeroizing<Vec<u8>> = Zeroizing::new(Vec::new());
         let mut byte = [0u8; 1];
 
@@ -95,7 +95,7 @@ fn get_sensitive_input(prompt: &str) -> Zeroizing<String> {
                 Err(_) => break,
             }
         }
-        
+
         std::mem::forget(file);
 
         let s = String::from_utf8(buffer.to_vec()).unwrap();
@@ -105,22 +105,21 @@ fn get_sensitive_input(prompt: &str) -> Zeroizing<String> {
 
 fn main() {
     let cli = Cli::parse();
-    
-    let mut vault = Vault::load();
 
+    let mut vault = Vault::load();
 
     let cipher = {
         let master_pass = get_sensitive_input("Master Password: ");
 
         let c = crypto::get_cipher(&master_pass, &vault.salt);
-        
-        c 
+
+        c
     };
 
-/*     println!("DEBUG: Password scrubbed (cleaned) from RAM. Sleeping 10s...");
-    println!("       (Attacker scanning memory now... should find nothing)");
-    thread::sleep(time::Duration::from_secs(10));
- */
+    /*     println!("DEBUG: Password scrubbed (cleaned) from RAM. Sleeping 10s...");
+       println!("       (Attacker scanning memory now... should find nothing)");
+       thread::sleep(time::Duration::from_secs(10));
+    */
     match cli.command {
         Some(cmd) => execute_command(cmd, &mut vault, &cipher),
         None => {
@@ -179,7 +178,7 @@ fn execute_command(cmd: Commands, vault: &mut Vault, cipher: &Aes256Gcm) {
                             "ERROR".red().bold()
                         );
                         process::exit(1);
-                    } 
+                    }
                 }
             } else {
                 println!(
