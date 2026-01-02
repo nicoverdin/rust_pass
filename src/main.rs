@@ -111,9 +111,7 @@ fn main() {
     let cipher = {
         let master_pass = get_sensitive_input("Master Password: ");
 
-        let c = crypto::get_cipher(&master_pass, &vault.salt);
-
-        c
+        crypto::get_cipher(&master_pass, &vault.salt);
     };
 
     /*     println!("DEBUG: Password scrubbed (cleaned) from RAM. Sleeping 10s...");
