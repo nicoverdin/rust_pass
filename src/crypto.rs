@@ -1,6 +1,16 @@
 use aes_gcm::{aead::KeyInit, Aes256Gcm, Key};
 use argon2::{password_hash::{PasswordHasher, SaltString}, Argon2};
 
+/// Derives a 256-bit AES key from a master password and a salt using Argon2id.
+/// 
+/// # Security
+/// Uses the Argon2id variant, which is the winner of the Password Hashing Competition.
+/// It is designed to be memory-hard, making it highly resistant to GPU and ASIC 
+/// brute-force attacks.
+///
+/// # Arguments
+/// * `master_pass` - The user's secret master password.
+/// * `salt_str` - The Base64 encoded salt string stored in the vault.
 pub fn get_cipher(master_pass: &str, salt_str: &str) -> Aes256Gcm {
     let salt = SaltString::from_b64(salt_str).expect("Corrupted salt in vault");
     let argon2 = Argon2::default();
@@ -14,6 +24,16 @@ pub fn get_cipher(master_pass: &str, salt_str: &str) -> Aes256Gcm {
     Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&hash_bytes[..32]))
 }
 
+/// Generates a high-entropy random password using a cryptographically secure character set.
+/// 
+/// # Arguments
+/// * `length` - The desired number of characters for the password.
+///
+/// # Example
+/// ```
+/// let pass = crypto::generate_password(16);
+/// assert_eq!(pass.len(), 16);
+/// ```
 pub fn generate_password(length: usize) -> String {
     let charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=";
     let mut rng = rand::thread_rng();
