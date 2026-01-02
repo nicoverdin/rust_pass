@@ -94,9 +94,6 @@ Unlike SHA-256 or PBKDF2, **Argon2** is designed to be memory-hard. It requires 
 ### Nonce Management
 Each entry is encrypted with a unique **96-bit Nonce**. Reusing a nonce with the same key is a critical security failure in GCM. PassRust generates a new random nonce for every single `add` or `update` operation to ensure cryptographic strength.
 
----
-License: MIT
-
 ## 🗺️ Roadmap & Future Enhancements
 
 The current version (v1.1) provides a solid cryptographic foundation. Future iterations will focus on portability and advanced security auditing:
@@ -107,3 +104,6 @@ The current version (v1.1) provides a solid cryptographic foundation. Future ite
 - [ ] **Multi-factor Authentication (MFA)**: Support for TOTP (Time-based One-Time Passwords) within the vault.
 - [ ] **Zero-Knowledge Recovery**: Implementation of a BIP-39 recovery phrase system for master password loss.
 - [ ] **Cross-Platform GUI**: A native desktop interface built with **Tauri** using the existing Rust core.
+
+---
+License: MIT
