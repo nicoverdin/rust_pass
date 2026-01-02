@@ -1,11 +1,14 @@
-use aes_gcm::{aead::KeyInit, Aes256Gcm, Key};
-use argon2::{password_hash::{PasswordHasher, SaltString}, Argon2};
+use aes_gcm::{Aes256Gcm, Key, aead::KeyInit};
+use argon2::{
+    Argon2,
+    password_hash::{PasswordHasher, SaltString},
+};
 
 /// Derives a 256-bit AES key from a master password and a salt using Argon2id.
-/// 
+///
 /// # Security
 /// Uses the Argon2id variant, which is the winner of the Password Hashing Competition.
-/// It is designed to be memory-hard, making it highly resistant to GPU and ASIC 
+/// It is designed to be memory-hard, making it highly resistant to GPU and ASIC
 /// brute-force attacks.
 ///
 /// # Arguments
@@ -17,15 +20,15 @@ pub fn get_cipher(master_pass: &str, salt_str: &str) -> Aes256Gcm {
     let password_hash = argon2
         .hash_password(master_pass.as_bytes(), &salt)
         .expect("Failed to derive key");
-    
+
     let hash_output = password_hash.hash.expect("Hash output missing");
     let hash_bytes = hash_output.as_bytes();
-    
+
     Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&hash_bytes[..32]))
 }
 
 /// Generates a high-entropy random password using a cryptographically secure character set.
-/// 
+///
 /// # Arguments
 /// * `length` - The desired number of characters for the password.
 ///
@@ -54,7 +57,7 @@ mod tests {
     #[test]
     fn test_encryption_decryption_cycle() {
         let master_pass = "portfolio_password_2026";
-        let salt = SaltString::generate(&mut OsRng); 
+        let salt = SaltString::generate(&mut OsRng);
         let salt_str = salt.as_str();
         let data = "secret_message";
 
@@ -72,10 +75,10 @@ mod tests {
     fn test_wrong_password_fails() {
         let salt = SaltString::generate(&mut OsRng);
         let salt_str = salt.as_str();
-        
+
         let cipher_correct = get_cipher("password123", salt_str);
         let cipher_wrong = get_cipher("wrong_pass", salt_str);
-        
+
         let data = "sensitive data";
         let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
         let ciphertext = cipher_correct.encrypt(&nonce, data.as_bytes()).unwrap();

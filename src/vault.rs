@@ -1,4 +1,7 @@
-use aes_gcm::{aead::{Aead, AeadCore, OsRng}, Aes256Gcm};
+use aes_gcm::{
+    Aes256Gcm,
+    aead::{Aead, AeadCore, OsRng},
+};
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::{Read, Write};
@@ -20,7 +23,7 @@ pub struct Vault {
 }
 
 impl Vault {
-    /// Loads the vault from `vault.json`. 
+    /// Loads the vault from `vault.json`.
     /// If the file is missing or corrupted, it initializes a new `Vault` instance.
     pub fn load() -> Self {
         let path = "vault.json";
@@ -49,15 +52,23 @@ impl Vault {
 
     /// Retrieves an entry by site name (case-insensitive).
     pub fn find_entry(&self, site: &str) -> Option<&PasswordEntry> {
-        self.entries.iter().find(|e| e.site.to_lowercase() == site.to_lowercase())
+        self.entries
+            .iter()
+            .find(|e| e.site.to_lowercase() == site.to_lowercase())
     }
 
     /// Updates the password for an existing site.
     /// Returns `true` if the entry was found and updated successfully.
     pub fn update_entry(&mut self, site: &str, new_pass: &str, cipher: &Aes256Gcm) -> bool {
-        if let Some(entry) = self.entries.iter_mut().find(|e| e.site.to_lowercase() == site.to_lowercase()) {
+        if let Some(entry) = self
+            .entries
+            .iter_mut()
+            .find(|e| e.site.to_lowercase() == site.to_lowercase())
+        {
             let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
-            let ciphertext = cipher.encrypt(&nonce, new_pass.as_bytes()).expect("Encryption failed");
+            let ciphertext = cipher
+                .encrypt(&nonce, new_pass.as_bytes())
+                .expect("Encryption failed");
 
             entry.ciphertext = ciphertext;
             entry.nonce = nonce.to_vec();
@@ -70,7 +81,8 @@ impl Vault {
     /// Removes an entry from the vault.
     pub fn delete_entry(&mut self, site: &str) -> bool {
         let initial_len = self.entries.len();
-        self.entries.retain(|e| e.site.to_lowercase() != site.to_lowercase());
+        self.entries
+            .retain(|e| e.site.to_lowercase() != site.to_lowercase());
         self.entries.len() < initial_len
     }
 }
