@@ -1,5 +1,7 @@
 # PassRust: Secure CLI Password Manager
 
+## 📚 [Documentation Live Demo](https://nicoverdin.github.io/rust_pass/passrust/)
+
 A lightweight, secure command-line password manager built with **Rust**. This project focuses on high-performance cryptography, safe memory management, and a user-friendly hybrid interface.
 
 ## Features
