@@ -1,39 +1,48 @@
 #!/bin/bash
 
 # Security Test 02: Brute Force Resistance
-# Target: Argon2id Key Derivation Function (KDF)
+# Objective: Verify that the Key Derivation Function (Argon2id) imposes
+#            significant computational latency (~500ms) to thwart dictionary attacks.
 
-# Colores
+# ANSI Color Codes for Output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
-NC='\033[0m'
+NC='\033[0m' # No Color
 
-# Ruta al ejecutable compilado (Release)
-BIN="../target/release/rust_pass"
+# --- 1. CONFIGURATION & PATH RESOLUTION ---
+
+# Automatically locate the release binary
+if [ -f "../target/release/rust_pass" ]; then
+    BIN="../target/release/rust_pass"
+elif [ -f "./target/release/rust_pass" ]; then
+    BIN="./target/release/rust_pass"
+else
+    echo -e "${RED}[ERROR] Binary not found.${NC}"
+    echo "Please run 'cargo build --release' first."
+    exit 1
+fi
+
 VAULT_DIR="$HOME/.passrust"
 VAULT_FILE="$VAULT_DIR/vault.json"
 
 echo -e "${BLUE}====================================================${NC}"
 echo -e "${YELLOW}   SECURITY TEST 02: BRUTE FORCE ATTACK (ARGON2)     ${NC}"
 echo -e "${BLUE}====================================================${NC}"
+echo -e "Objective: Measure authentication latency per attempt."
 
-# 0. VERIFICAR BINARIO
-if [ ! -f "$BIN" ]; then
-    echo -e "${RED}[ERROR] Binary not found at $BIN${NC}"
-    echo "Please run: cargo build --release"
-    exit 1
-fi
+# --- 2. ENVIRONMENT SETUP ---
 
-# 1. LIMPIEZA Y SETUP (Automático)
 echo -e "1. [SETUP] Resetting environment..."
 rm -f "$VAULT_FILE"
 
-echo -e "   [SETUP] Creating new vault with master password: 'admin'"
-# Usamos printf para enviar la contraseña dos veces (Crear + Confirmar)
-# Esto crea el archivo vault.json y añade la entrada
+echo -e "   [SETUP] Creating a new target vault..."
+echo -e "   Target Master Password: 'admin'"
+
+# Initialize vault with a dummy credential so we have something to decrypt.
+# We pipe the password twice ('admin\nadmin\n') for confirmation prompts.
 printf "admin\nadmin\n" | $BIN add bank.com victim_user secret_123 > /dev/null 2>&1
 
 if [ ! -f "$VAULT_FILE" ]; then
@@ -41,12 +50,13 @@ if [ ! -f "$VAULT_FILE" ]; then
     exit 1
 fi
 
-# 2. EL ATAQUE
-echo -e "\n2. [ATTACK] Starting Dictionary Attack..."
-echo -e "   Targeting the Master Password..."
-echo -e "   Note the delay per attempt (Argon2 'Nuclear' settings)...\n"
+# --- 3. ATTACK SIMULATION ---
 
-# Lista de contraseñas (incluye la correcta 'admin' al final)
+echo -e "\n2. [ATTACK] Starting Dictionary Attack..."
+echo -e "   Targeting the Master Password with a wordlist."
+echo -e "   Observing the cost of Argon2id hashing...\n"
+
+# Wordlist containing common passwords and the correct one at the end
 WORDLIST=("123456" "password" "qwerty" "admin")
 
 start_total=$(date +%s%N)
@@ -56,25 +66,39 @@ for pass in "${WORDLIST[@]}"; do
     
     echo -ne "   [..] Trying: ${CYAN}'$pass'${NC} ... "
     
-    # Intentamos descifrar enviando la contraseña candidata
-    # Capturamos el código de salida ($?)
+    # Attempt to retrieve a password using the current guess from the wordlist
     echo "$pass" | $BIN get bank.com > /dev/null 2>&1
     EXIT_CODE=$?
     
     end_attempt=$(date +%s%N)
-    duration=$((($end_attempt - $start_attempt)/1000000)) # Milisegundos
+    # Calculate duration in milliseconds
+    duration=$((($end_attempt - $start_attempt)/1000000))
     
     if [ $EXIT_CODE -eq 0 ]; then
         echo -e "${GREEN}[CRACKED!]${NC} (Cost: ${YELLOW}${duration}ms${NC})"
     else
-        echo -e "${RED}[FAILED]${NC} (Cost: ${YELLOW}${duration}ms${NC})"
+        echo -e "${RED}[FAILED]${NC}   (Cost: ${YELLOW}${duration}ms${NC})"
     fi
 done
 
 end_total=$(date +%s%N)
 total_ms=$((($end_total - $start_total)/1000000))
 
-echo -e "\n3. [RESULTS] Analysis:"
-echo -e "   Total time: ~${total_ms} ms."
-echo -e "   High latency per attempt proves Argon2id is working."
+# --- 4. RESULTS ANALYSIS ---
+
+echo -e "\n3. [RESULTS] Forensic Analysis:"
+echo -e "   Total Attack Time: ~${total_ms} ms"
+echo -e "   Average Latency:   High (~500ms per attempt recommended)"
+
+# Check if the latency is sufficient (Threshold: >200ms)
+# We assume the last attempt (successful) represents a typical full decryption cycle.
+if [ "$duration" -ge 200 ]; then
+    echo -e "\n${GREEN}[PASS] STRONG DEFENSE DETECTED.${NC}"
+    echo -e "       Argon2id is correctly configured to slow down attackers."
+    echo -e "       (GPU cracking would be computationally expensive)."
+else
+    echo -e "\n${RED}[WARN] WEAK PARAMETERS DETECTED.${NC}"
+    echo -e "       The hashing speed is too fast (<200ms). Increase Argon2 iterations/memory."
+fi
+
 echo -e "${BLUE}====================================================${NC}"

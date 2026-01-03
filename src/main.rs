@@ -3,7 +3,7 @@ mod vault;
 
 use std::io::{self, IsTerminal, Write};
 use std::process;
-/* use std::{thread, time}; */
+use std::{thread, time};
 
 use aes_gcm::{
     Aes256Gcm, Nonce,
@@ -27,6 +27,9 @@ use zeroize::Zeroizing;
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
+
+    #[arg(long, hide = true)]
+    test_memory_dump: bool,
 }
 
 #[derive(Subcommand, Clone)]
@@ -85,10 +88,10 @@ fn get_sensitive_input(prompt: &str) -> Zeroizing<String> {
 
         loop {
             match file.read(&mut byte) {
-                Ok(0) => break, // Fin del stream (EOF)
+                Ok(0) => break,
                 Ok(_) => {
                     if byte[0] == b'\n' {
-                        break; // Fin de línea
+                        break;
                     }
                     buffer.push(byte[0]);
                 }
@@ -114,10 +117,10 @@ fn main() {
         crypto::get_cipher(&master_pass, &vault.salt)
     };
 
-    /*     println!("DEBUG: Password scrubbed (cleaned) from RAM. Sleeping 10s...");
-       println!("       (Attacker scanning memory now... should find nothing)");
-       thread::sleep(time::Duration::from_secs(10));
-    */
+    if cli.test_memory_dump {
+        println!("DEBUG: [TEST MODE] Sleeping 10s for memory analysis...");
+        thread::sleep(time::Duration::from_secs(10));
+    }
     match cli.command {
         Some(cmd) => execute_command(cmd, &mut vault, &cipher),
         None => {
