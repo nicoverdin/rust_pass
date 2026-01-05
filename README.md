@@ -9,6 +9,8 @@
 
 ---
 
+![Pass Rust Demo](screenshot.png)
+
 A lightweight, secure command-line password manager built with **Rust**. This project focuses on high-performance cryptography, **anti-forensic memory management**, and a user-friendly hybrid interface.
 
 Unlike standard managers, PassRust implements **active memory scrubbing** at the OS level to prevent cold-boot attacks and RAM dumps.
